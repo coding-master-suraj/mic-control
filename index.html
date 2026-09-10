@@ -1,0 +1,2979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>Wireless Mic Controller</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:
+    radial-gradient(circle at top,#18243a,#080b12 55%,#030407);
+  color:#fff;
+  min-height:100vh;
+}
+
+button,input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.hidden{
+  display:none!important;
+}
+
+/* ================= LOGIN ================= */
+
+#loginScreen{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(circle,#15233a,#05070c 70%);
+  z-index:1000;
+}
+
+.loginBox{
+  width:min(420px,92%);
+  padding:35px;
+  border-radius:25px;
+  background:rgba(15,20,32,.92);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 25px 80px rgba(0,0,0,.65);
+  text-align:center;
+}
+
+.logo{
+  font-size:48px;
+  margin-bottom:10px;
+}
+
+.loginBox h1{
+  font-size:25px;
+  margin-bottom:8px;
+}
+
+.loginBox p{
+  color:#8995a9;
+  margin-bottom:25px;
+}
+
+.loginBox input{
+  width:100%;
+  padding:15px;
+  border-radius:13px;
+  border:1px solid #303b50;
+  background:#080c14;
+  color:#fff;
+  outline:none;
+  text-align:center;
+  margin-bottom:14px;
+}
+
+.loginBox button{
+  width:100%;
+  padding:15px;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(135deg,#00e5ff,#625bff);
+  color:white;
+  font-weight:bold;
+}
+
+/* ================= APP ================= */
+
+#app{
+  max-width:1450px;
+  margin:auto;
+  padding:18px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:17px 20px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:20px;
+  background:rgba(13,18,29,.82);
+  backdrop-filter:blur(15px);
+  margin-bottom:18px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brandIcon{
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:25px;
+  background:linear-gradient(135deg,#00e5ff,#754dff);
+}
+
+.brand h1{
+  font-size:20px;
+}
+
+.brand small{
+  color:#7f8aa0;
+}
+
+.adminStatus{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.liveDot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#00ff7f;
+  box-shadow:0 0 14px #00ff7f;
+}
+
+.logout{
+  padding:9px 14px;
+  border-radius:10px;
+  background:#151c29;
+  color:#fff;
+  border:1px solid #293448;
+}
+
+/* ================= LAYOUT ================= */
+
+.layout{
+  display:grid;
+  grid-template-columns:360px 1fr;
+  gap:18px;
+}
+
+.panel{
+  background:rgba(13,18,29,.86);
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 15px 50px rgba(0,0,0,.25);
+}
+
+.panelHeader{
+  padding:18px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.panelHeader h2{
+  font-size:16px;
+}
+
+.count{
+  color:#00e5ff;
+}
+
+/* ================= DEVICES ================= */
+
+.deviceList{
+  padding:12px;
+  max-height:calc(100vh - 150px);
+  overflow:auto;
+}
+
+.deviceCard{
+  padding:15px;
+  border-radius:15px;
+  background:#0a0f19;
+  border:1px solid #202b3e;
+  margin-bottom:10px;
+  transition:.2s;
+}
+
+.deviceCard:hover{
+  border-color:#425474;
+}
+
+.deviceCard.selected{
+  border-color:#00d9ff;
+  box-shadow:0 0 20px rgba(0,217,255,.12);
+}
+
+.deviceTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:9px;
+}
+
+.deviceNumber{
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  background:linear-gradient(135deg,#00d9ff,#604bff);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+
+.deviceName{
+  flex:1;
+  margin-left:10px;
+  font-weight:bold;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+.status{
+  font-size:11px;
+  padding:5px 8px;
+  border-radius:8px;
+}
+
+.status.live{
+  color:#00ff8a;
+  background:rgba(0,255,138,.1);
+}
+
+.status.pending{
+  color:#ffc400;
+  background:rgba(255,196,0,.1);
+}
+
+.status.blocked{
+  color:#ff4b62;
+  background:rgba(255,75,98,.1);
+}
+
+.status.offline{
+  color:#8995a9;
+  background:#111722;
+}
+
+.deviceInfo{
+  color:#78859a;
+  font-size:12px;
+  line-height:1.7;
+}
+
+.selectBtn{
+  width:100%;
+  margin-top:10px;
+  padding:9px;
+  border-radius:9px;
+  border:1px solid #273348;
+  background:#121a28;
+  color:white;
+}
+
+/* ================= CONTROL ================= */
+
+.controlArea{
+  padding:20px;
+}
+
+.selectedHeader{
+  padding:18px;
+  border-radius:17px;
+  background:
+    linear-gradient(135deg,rgba(0,229,255,.08),rgba(99,77,255,.08));
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:18px;
+}
+
+.selectedTitle{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.selectedTitle h2{
+  font-size:22px;
+}
+
+.deviceDetails{
+  margin-top:8px;
+  color:#8490a4;
+  font-size:13px;
+}
+
+.connectionBar{
+  display:flex;
+  gap:10px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.actionBtn{
+  border:0;
+  padding:11px 15px;
+  border-radius:10px;
+  color:#fff;
+  font-weight:bold;
+}
+
+.connect{
+  background:#00a878;
+}
+
+.disconnect{
+  background:#3b4557;
+}
+
+.approve{
+  background:#087f5b;
+}
+
+.block{
+  background:#c92a3d;
+}
+
+.unblock{
+  background:#7555e8;
+}
+
+.otp{
+  background:#1769aa;
+}
+
+/* ================= CONTROLS ================= */
+
+.controlsGrid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+
+.controlBox{
+  padding:20px;
+  border-radius:17px;
+  background:#0a0f18;
+  border:1px solid #202b3c;
+}
+
+.controlBox.full{
+  grid-column:1/-1;
+}
+
+.controlBox h3{
+  font-size:14px;
+  margin-bottom:14px;
+}
+
+.switchRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.switch{
+  position:relative;
+  width:60px;
+  height:32px;
+}
+
+.switch input{
+  display:none;
+}
+
+.slider{
+  position:absolute;
+  inset:0;
+  border-radius:30px;
+  background:#252d3b;
+  cursor:pointer;
+}
+
+.slider:before{
+  content:"";
+  position:absolute;
+  width:24px;
+  height:24px;
+  left:4px;
+  top:4px;
+  border-radius:50%;
+  background:#fff;
+  transition:.2s;
+}
+
+.switch input:checked+.slider{
+  background:#00b879;
+}
+
+.switch input:checked+.slider:before{
+  transform:translateX(28px);
+}
+
+.rangeRow{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.rangeRow input{
+  flex:1;
+}
+
+input[type=range]{
+  accent-color:#00d9ff;
+}
+
+.value{
+  width:50px;
+  text-align:right;
+  color:#00e5ff;
+  font-weight:bold;
+}
+
+.timerGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.timerGrid input{
+  width:100%;
+  padding:11px;
+  border-radius:9px;
+  background:#080d15;
+  border:1px solid #293448;
+  color:#fff;
+}
+
+.timerButtons{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+}
+
+.timerButtons button{
+  flex:1;
+  padding:10px;
+  border:0;
+  border-radius:9px;
+  color:white;
+  background:#1769aa;
+}
+
+.timerButtons button:last-child{
+  background:#c92a3d;
+}
+
+/* ================= VISUALIZER ================= */
+
+.visualizer{
+  height:180px;
+  position:relative;
+  overflow:hidden;
+  border-radius:16px;
+  background:#03060b;
+  border:1px solid #182234;
+  margin-top:18px;
+}
+
+.visualizer canvas{
+  width:100%;
+  height:100%;
+}
+
+/* ================= RESPONSIVE ================= */
+
+@media(max-width:900px){
+
+  .layout{
+    grid-template-columns:1fr;
+  }
+
+  .deviceList{
+    max-height:350px;
+  }
+
+}
+
+@media(max-width:600px){
+
+  #app{
+    padding:10px;
+  }
+
+  .topbar{
+    padding:12px;
+  }
+
+  .brand h1{
+    font-size:16px;
+  }
+
+  .controlsGrid{
+    grid-template-columns:1fr;
+  }
+
+  .controlBox.full{
+    grid-column:auto;
+  }
+
+  .selectedTitle{
+    align-items:flex-start;
+    gap:10px;
+    flex-direction:column;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= LOGIN ================= -->
+
+<div id="loginScreen">
+
+  <div class="loginBox">
+
+    <div class="logo">🎙️</div>
+
+    <h1>WIRELESS MIC</h1>
+
+    <p>Admin Controller</p>
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Enter Admin Password"
+    >
+
+    <button onclick="login()">
+      🔐 UNLOCK CONTROLLER
+    </button>
+
+    <div
+      id="loginMsg"
+      style="margin-top:15px;color:#ff5c72"
+    ></div>
+
+  </div>
+
+</div>
+
+
+<!-- ================= APP ================= -->
+
+<div id="app" class="hidden">
+
+  <div class="topbar">
+
+    <div class="brand">
+
+      <div class="brandIcon">🎙️</div>
+
+      <div>
+        <h1>WIRELESS MIC CONTROLLER</h1>
+        <small>Central Device Management</small>
+      </div>
+
+    </div>
+
+    <div class="adminStatus">
+
+      <span class="liveDot"></span>
+
+      <span>ADMIN ONLINE</span>
+
+      <button
+        class="logout"
+        onclick="logout()"
+      >
+        Logout
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div class="layout">
+
+
+    <!-- DEVICE LIST -->
+
+    <div class="panel">
+
+      <div class="panelHeader">
+
+        <h2>📡 DEVICES</h2>
+
+        <span
+          id="deviceCount"
+          class="count"
+        >
+          0
+        </span>
+
+      </div>
+
+      <div
+        id="deviceList"
+        class="deviceList"
+      ></div>
+
+    </div>
+
+
+    <!-- CONTROL PANEL -->
+
+    <div class="panel">
+
+      <div class="controlArea">
+
+        <div class="selectedHeader">
+
+          <div class="selectedTitle">
+
+            <div>
+
+              <h2 id="selectedName">
+                No Device Selected
+              </h2>
+
+              <div
+                id="selectedDetails"
+                class="deviceDetails"
+              >
+                Select a device from the left.
+              </div>
+
+            </div>
+
+            <div
+              id="selectedStatus"
+              class="status offline"
+            >
+              OFFLINE
+            </div>
+
+          </div>
+
+
+          <div class="connectionBar">
+
+            <button
+              class="actionBtn connect"
+              onclick="connectDevice()"
+            >
+              🔗 Connect Mic
+            </button>
+
+            <button
+              class="actionBtn disconnect"
+              onclick="disconnectDevice()"
+            >
+              ⛔ Disconnect
+            </button>
+
+            <button
+              class="actionBtn approve"
+              onclick="approveSelected()"
+            >
+              🟢 Approve
+            </button>
+
+            <button
+              class="actionBtn block"
+              onclick="blockSelected()"
+            >
+              🔴 Block
+            </button>
+
+            <button
+              class="actionBtn unblock"
+              onclick="unblockSelected()"
+            >
+              ♻️ Unblock
+            </button>
+
+            <button
+              class="actionBtn otp"
+              onclick="sendOtpSelected()"
+            >
+              📧 Send OTP
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="controlsGrid">
+
+
+          <!-- MIC -->
+
+          <div class="controlBox">
+
+            <h3>🎙️ MIC POWER</h3>
+
+            <div class="switchRow">
+
+              <span id="micText">
+                Microphone OFF
+              </span>
+
+              <label class="switch">
+
+                <input
+                  id="micOn"
+                  type="checkbox"
+                  onchange="sendControls()"
+                >
+
+                <span class="slider"></span>
+
+              </label>
+
+            </div>
+
+          </div>
+
+
+          <!-- OUTPUT -->
+
+          <div class="controlBox">
+
+            <h3>🔊 OUTPUT VOLUME</h3>
+
+            <div class="rangeRow">
+
+              <input
+                id="outputVolume"
+                type="range"
+                min="0"
+                max="100"
+                value="100"
+                oninput="updateRangeValue('outputVolume','outputValue')"
+                onchange="sendControls()"
+              >
+
+              <span
+                id="outputValue"
+                class="value"
+              >
+                100%
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- INPUT -->
+
+          <div class="controlBox">
+
+            <h3>🎤 INPUT MIC GAIN</h3>
+
+            <div class="rangeRow">
+
+              <input
+                id="inputVolume"
+                type="range"
+                min="0"
+                max="100"
+                value="100"
+                oninput="updateRangeValue('inputVolume','inputValue')"
+                onchange="sendControls()"
+              >
+
+              <span
+                id="inputValue"
+                class="value"
+              >
+                100%
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- ECHO -->
+
+          <div class="controlBox">
+
+            <h3>🔁 ECHO</h3>
+
+            <div class="rangeRow">
+
+              <input
+                id="echo"
+                type="range"
+                min="0"
+                max="100"
+                value="0"
+                oninput="updateRangeValue('echo','echoValue')"
+                onchange="sendControls()"
+              >
+
+              <span
+                id="echoValue"
+                class="value"
+              >
+                0%
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- TIMER -->
+
+          <div class="controlBox full">
+
+            <h3>⏱️ DEVICE TIMER</h3>
+
+            <div class="timerGrid">
+
+              <input
+                id="timerHours"
+                type="number"
+                min="0"
+                max="168"
+                value="0"
+                placeholder="Hours"
+              >
+
+              <input
+                id="timerMinutes"
+                type="number"
+                min="0"
+                max="59"
+                value="0"
+                placeholder="Minutes"
+              >
+
+            </div>
+
+            <div class="timerButtons">
+
+              <button
+                onclick="startTimer()"
+              >
+                ▶ START TIMER
+              </button>
+
+              <button
+                onclick="stopTimer()"
+              >
+                ■ STOP TIMER
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- VISUALIZER -->
+
+          <div class="controlBox full">
+
+            <h3>🌈 LIVE MIC AUDIO</h3>
+
+            <div class="visualizer">
+
+              <canvas
+                id="visualizer"
+              ></canvas>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<audio
+  id="remoteAudio"
+  autoplay
+  playsinline
+></audio>
+
+
+<script>
+
+/* =================================================
+   IMPORTANT
+================================================= */
+
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbxno0DBH2u3l-6nDGU5DsGQOUgIuFq_i6w6HfhvSBa9_yz6NAflmusstFjepUIltwWhWQ/exec";
+
+
+/* =================================================
+   GLOBALS
+================================================= */
+
+let adminToken =
+  localStorage.getItem(
+    "wm_admin_token"
+  );
+
+let devices = [];
+
+let selectedDeviceId = null;
+
+let peerConnection = null;
+
+let audioContext = null;
+
+let remoteSource = null;
+
+let outputGain = null;
+
+let echoDelay = null;
+
+let echoGain = null;
+
+let feedbackGain = null;
+
+let analyser = null;
+
+let answerTimer = null;
+
+let connecting = false;
+
+let currentAnswerAt = "";
+
+
+/* =================================================
+   START
+================================================= */
+
+window.addEventListener(
+  "load",
+  () => {
+
+    if (adminToken) {
+
+      showApp();
+
+    }
+
+  }
+);
+
+
+/* =================================================
+   LOGIN
+================================================= */
+
+async function login(){
+
+  const password =
+    document
+      .getElementById("password")
+      .value;
+
+
+  if (!password){
+
+    showLoginMessage(
+      "Enter password"
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    const result =
+      await apiGet({
+
+        action:"login",
+
+        password:password
+
+      });
+
+
+    if (!result.success){
+
+      showLoginMessage(
+        result.error ||
+        "Login failed"
+      );
+
+      return;
+
+    }
+
+
+    adminToken =
+      result.token;
+
+
+    localStorage.setItem(
+      "wm_admin_token",
+      adminToken
+    );
+
+
+    showApp();
+
+
+  }catch(error){
+
+    showLoginMessage(
+      error.message
+    );
+
+  }
+
+}
+
+
+function showLoginMessage(text){
+
+  document
+    .getElementById("loginMsg")
+    .textContent = text;
+
+}
+
+
+/* =================================================
+   SHOW APP
+================================================= */
+
+function showApp(){
+
+  document
+    .getElementById("loginScreen")
+    .classList
+    .add("hidden");
+
+
+  document
+    .getElementById("app")
+    .classList
+    .remove("hidden");
+
+
+  loadDevices();
+
+  setInterval(
+    loadDevices,
+    3000
+  );
+
+}
+
+
+/* =================================================
+   LOGOUT
+================================================= */
+
+function logout(){
+
+  localStorage.removeItem(
+    "wm_admin_token"
+  );
+
+  adminToken = null;
+
+  disconnectDevice();
+
+  location.reload();
+
+}
+
+
+/* =================================================
+   API GET JSONP
+================================================= */
+
+function apiGet(params){
+
+  return new Promise(
+    (resolve,reject)=>{
+
+      const callback =
+        "wmcb_" +
+        Date.now() +
+        "_" +
+        Math.floor(
+          Math.random()*10000
+        );
+
+
+      params.callback =
+        callback;
+
+
+      params._ =
+        Date.now();
+
+
+      window[callback] =
+        function(data){
+
+          delete window[callback];
+
+          script.remove();
+
+          resolve(data);
+
+        };
+
+
+      const script =
+        document.createElement(
+          "script"
+        );
+
+
+      script.onerror =
+        function(){
+
+          delete window[callback];
+
+          script.remove();
+
+          reject(
+            new Error(
+              "API connection failed"
+            )
+          );
+
+        };
+
+
+      script.src =
+        API_URL +
+        "?" +
+        new URLSearchParams(
+          params
+        ).toString();
+
+
+      document
+        .body
+        .appendChild(script);
+
+    }
+  );
+
+}
+
+
+/* =================================================
+   POST FORM
+================================================= */
+
+function postForm(
+  action,
+  data
+){
+
+  return new Promise(
+    resolve=>{
+
+      const name =
+        "wm_frame_" +
+        Date.now();
+
+
+      const iframe =
+        document.createElement(
+          "iframe"
+        );
+
+      iframe.name = name;
+
+      iframe.style.display =
+        "none";
+
+
+      document
+        .body
+        .appendChild(
+          iframe
+        );
+
+
+      const form =
+        document.createElement(
+          "form"
+        );
+
+
+      form.method = "POST";
+
+      form.action =
+        API_URL;
+
+      form.target =
+        name;
+
+
+      addHidden(
+        form,
+        "action",
+        action
+      );
+
+
+      Object.keys(data)
+        .forEach(key=>{
+
+          addHidden(
+            form,
+            key,
+            data[key]
+          );
+
+        });
+
+
+      document
+        .body
+        .appendChild(form);
+
+
+      form.submit();
+
+
+      setTimeout(
+        ()=>{
+
+          form.remove();
+
+          iframe.remove();
+
+          resolve({
+            success:true
+          });
+
+        },
+        1000
+      );
+
+    }
+  );
+
+}
+
+
+function addHidden(
+  form,
+  name,
+  value
+){
+
+  const input =
+    document.createElement(
+      "input"
+    );
+
+  input.type =
+    "hidden";
+
+  input.name =
+    name;
+
+  input.value =
+    value ?? "";
+
+  form.appendChild(
+    input
+  );
+
+}
+
+
+/* =================================================
+   LOAD DEVICES
+================================================= */
+
+async function loadDevices(){
+
+  if (!adminToken)
+    return;
+
+
+  try{
+
+    const result =
+      await apiGet({
+
+        action:
+          "listDevices",
+
+        adminToken:
+          adminToken
+
+      });
+
+
+    if (!result.success){
+
+      if (
+        result.error ===
+        "Unauthorized"
+      ){
+
+        logout();
+
+      }
+
+      return;
+
+    }
+
+
+    devices =
+      result.devices ||
+      [];
+
+
+    renderDevices();
+
+
+    if (selectedDeviceId){
+
+      const device =
+        devices.find(
+          d =>
+            String(d.deviceId) ===
+            String(selectedDeviceId)
+        );
+
+
+      if (device){
+
+        renderSelected(
+          device
+        );
+
+      }
+
+    }
+
+  }catch(error){
+
+    console.log(error);
+
+  }
+
+}
+
+
+/* =================================================
+   RENDER DEVICE LIST
+================================================= */
+
+function renderDevices(){
+
+  const list =
+    document
+      .getElementById(
+        "deviceList"
+      );
+
+
+  document
+    .getElementById(
+      "deviceCount"
+    )
+    .textContent =
+    devices.length;
+
+
+  if (!devices.length){
+
+    list.innerHTML = `
+
+      <div style="
+        text-align:center;
+        color:#68758a;
+        padding:40px 10px;
+      ">
+        No device registered
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  list.innerHTML =
+    devices.map(
+      (d,index)=>{
+
+        let cls =
+          d.status === "LIVE"
+            ? "live"
+            : d.status === "BLOCKED"
+              ? "blocked"
+              : d.status === "PENDING"
+                ? "pending"
+                : "offline";
+
+
+        return `
+
+          <div
+            class="deviceCard ${
+              String(d.deviceId) ===
+              String(selectedDeviceId)
+                ? "selected"
+                : ""
+            }"
+          >
+
+            <div class="deviceTop">
+
+              <div class="deviceNumber">
+                ${index+1}
+              </div>
+
+              <div class="deviceName">
+                ${escapeHtml(
+                  d.deviceName ||
+                  "Device " +
+                  d.deviceId
+                )}
+              </div>
+
+              <span
+                class="status ${cls}"
+              >
+                ${d.status}
+              </span>
+
+            </div>
+
+            <div class="deviceInfo">
+
+              Device ID:
+              ${d.deviceId}<br>
+
+              Gmail:
+              ${escapeHtml(
+                d.gmail || "-"
+              )}<br>
+
+              Gmail Verified:
+              ${d.gmailVerified || "NO"}<br>
+
+              Last Seen:
+              ${formatDate(
+                d.lastSeen
+              )}
+
+            </div>
+
+            <button
+              class="selectBtn"
+              onclick="selectDevice('${d.deviceId}')"
+            >
+              SELECT DEVICE
+            </button>
+
+          </div>
+
+        `;
+
+      }
+    )
+    .join("");
+
+}
+
+
+/* =================================================
+   SELECT DEVICE
+================================================= */
+
+function selectDevice(id){
+
+  selectedDeviceId =
+    id;
+
+
+  const device =
+    devices.find(
+      d =>
+        String(d.deviceId) ===
+        String(id)
+    );
+
+
+  if (!device)
+    return;
+
+
+  renderDevices();
+
+  renderSelected(
+    device
+  );
+
+}
+
+
+/* =================================================
+   SELECTED DEVICE UI
+================================================= */
+
+function renderSelected(d){
+
+  document
+    .getElementById(
+      "selectedName"
+    )
+    .textContent =
+    d.deviceName ||
+    "Device " +
+    d.deviceId;
+
+
+  document
+    .getElementById(
+      "selectedDetails"
+    )
+    .textContent =
+
+      "Device ID: " +
+      d.deviceId +
+      " • Gmail: " +
+      (d.gmail || "-") +
+      " • Verified: " +
+      (d.gmailVerified || "NO");
+
+
+  const status =
+    document
+      .getElementById(
+        "selectedStatus"
+      );
+
+
+  status.textContent =
+    d.status;
+
+
+  status.className =
+    "status " +
+    (
+      d.status === "LIVE"
+        ? "live"
+        : d.status === "BLOCKED"
+          ? "blocked"
+          : d.status === "PENDING"
+            ? "pending"
+            : "offline"
+    );
+
+
+  document
+    .getElementById(
+      "micOn"
+    )
+    .checked =
+    !!d.micOn;
+
+
+  setSlider(
+    "inputVolume",
+    d.inputVolume
+  );
+
+
+  setSlider(
+    "outputVolume",
+    d.outputVolume
+  );
+
+
+  setSlider(
+    "echo",
+    d.echo
+  );
+
+}
+
+
+function setSlider(
+  id,
+  value
+){
+
+  value =
+    Number(value ?? 0);
+
+
+  document
+    .getElementById(id)
+    .value =
+    value;
+
+
+  const map = {
+
+    inputVolume:
+      "inputValue",
+
+    outputVolume:
+      "outputValue",
+
+    echo:
+      "echoValue"
+
+  };
+
+
+  if(map[id]){
+
+    document
+      .getElementById(
+        map[id]
+      )
+      .textContent =
+      value + "%";
+
+  }
+
+}
+
+
+/* =================================================
+   RANGE
+================================================= */
+
+function updateRangeValue(
+  inputId,
+  valueId
+){
+
+  const value =
+    document
+      .getElementById(
+        inputId
+      )
+      .value;
+
+
+  document
+    .getElementById(
+      valueId
+    )
+    .textContent =
+    value + "%";
+
+}
+
+
+/* =================================================
+   SEND CONTROL
+================================================= */
+
+async function sendControls(){
+
+  if (!selectedDeviceId)
+    return;
+
+
+  const micOn =
+    document
+      .getElementById(
+        "micOn"
+      )
+      .checked;
+
+
+  const inputVolume =
+    document
+      .getElementById(
+        "inputVolume"
+      )
+      .value;
+
+
+  const outputVolume =
+    document
+      .getElementById(
+        "outputVolume"
+      )
+      .value;
+
+
+  const echo =
+    document
+      .getElementById(
+        "echo"
+      )
+      .value;
+
+
+  try{
+
+    await apiGet({
+
+      action:"control",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId,
+
+      micOn:
+        micOn,
+
+      inputVolume:
+        inputVolume,
+
+      outputVolume:
+        outputVolume,
+
+      echo:
+        echo,
+
+      timerEnabled:
+        false,
+
+      timerMinutes:
+        0
+
+    });
+
+  }catch(error){
+
+    console.log(error);
+
+  }
+
+}
+
+
+/* =================================================
+   APPROVE
+================================================= */
+
+async function approveSelected(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  const result =
+    await apiGet({
+
+      action:"approve",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId
+
+    });
+
+
+  alert(
+    result.success
+      ? "Device approved"
+      : result.error
+  );
+
+
+  loadDevices();
+
+}
+
+
+/* =================================================
+   BLOCK
+================================================= */
+
+async function blockSelected(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  if(
+    !confirm(
+      "Block this device?"
+    )
+  )
+    return;
+
+
+  const result =
+    await apiGet({
+
+      action:"block",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId
+
+    });
+
+
+  alert(
+    result.success
+      ? "Device blocked"
+      : result.error
+  );
+
+
+  if(result.success){
+
+    disconnectDevice();
+
+  }
+
+
+  loadDevices();
+
+}
+
+
+/* =================================================
+   UNBLOCK
+================================================= */
+
+async function unblockSelected(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  const result =
+    await apiGet({
+
+      action:"unblock",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId
+
+    });
+
+
+  alert(
+    result.success
+      ? "Device unblocked"
+      : result.error
+  );
+
+
+  loadDevices();
+
+}
+
+
+/* =================================================
+   SEND OTP
+================================================= */
+
+async function sendOtpSelected(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  const result =
+    await apiGet({
+
+      action:
+        "sendDeviceOtp",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId
+
+    });
+
+
+  alert(
+    result.success
+      ? "OTP sent to device Gmail"
+      : result.error
+  );
+
+}
+
+
+/* =================================================
+   TIMER
+================================================= */
+
+async function startTimer(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  let hours =
+    Number(
+      document
+        .getElementById(
+          "timerHours"
+        )
+        .value
+    ) || 0;
+
+
+  let minutes =
+    Number(
+      document
+        .getElementById(
+          "timerMinutes"
+        )
+        .value
+    ) || 0;
+
+
+  minutes =
+    Math.max(
+      0,
+      Math.min(
+        59,
+        minutes
+      )
+    );
+
+
+  hours =
+    Math.max(
+      0,
+      hours
+    );
+
+
+  const totalMinutes =
+    hours * 60 +
+    minutes;
+
+
+  if(totalMinutes <= 0){
+
+    alert(
+      "Set timer duration"
+    );
+
+    return;
+
+  }
+
+
+  const micOn =
+    document
+      .getElementById(
+        "micOn"
+      )
+      .checked;
+
+
+  const result =
+    await apiGet({
+
+      action:"control",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId,
+
+      micOn:
+        micOn,
+
+      inputVolume:
+        document
+          .getElementById(
+            "inputVolume"
+          )
+          .value,
+
+      outputVolume:
+        document
+          .getElementById(
+            "outputVolume"
+          )
+          .value,
+
+      echo:
+        document
+          .getElementById(
+            "echo"
+          )
+          .value,
+
+      timerEnabled:
+        true,
+
+      timerMinutes:
+        totalMinutes
+
+    });
+
+
+  alert(
+    result.success
+      ? "Timer started"
+      : result.error
+  );
+
+}
+
+
+async function stopTimer(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  const result =
+    await apiGet({
+
+      action:"control",
+
+      adminToken:
+        adminToken,
+
+      deviceId:
+        selectedDeviceId,
+
+      micOn:
+        document
+          .getElementById(
+            "micOn"
+          )
+          .checked,
+
+      inputVolume:
+        document
+          .getElementById(
+            "inputVolume"
+          )
+          .value,
+
+      outputVolume:
+        document
+          .getElementById(
+            "outputVolume"
+          )
+          .value,
+
+      echo:
+        document
+          .getElementById(
+            "echo"
+          )
+          .value,
+
+      timerEnabled:
+        false,
+
+      timerMinutes:
+        0
+
+    });
+
+
+  alert(
+    result.success
+      ? "Timer stopped"
+      : result.error
+  );
+
+}
+
+
+/* =================================================
+   WEBRTC CONNECT
+================================================= */
+
+async function connectDevice(){
+
+  if (!selectedDeviceId){
+
+    alert(
+      "Select a device first"
+    );
+
+    return;
+
+  }
+
+
+  if(connecting)
+    return;
+
+
+  const device =
+    devices.find(
+      d =>
+        String(d.deviceId) ===
+        String(selectedDeviceId)
+    );
+
+
+  if(
+    device &&
+    device.status ===
+    "BLOCKED"
+  ){
+
+    alert(
+      "This device is BLOCKED"
+    );
+
+    return;
+
+  }
+
+
+  connecting = true;
+
+
+  try{
+
+    disconnectDevice();
+
+
+    if(!audioContext){
+
+      audioContext =
+        new (
+          window.AudioContext ||
+          window.webkitAudioContext
+        )();
+
+    }
+
+
+    await audioContext.resume();
+
+
+    peerConnection =
+      new RTCPeerConnection({
+
+        iceServers:[
+          {
+            urls:
+              "stun:stun.l.google.com:19302"
+          }
+        ]
+
+      });
+
+
+    /*
+     Controller receives audio
+    */
+
+    peerConnection
+      .addTransceiver(
+        "audio",
+        {
+          direction:"recvonly"
+        }
+      );
+
+
+    peerConnection.ontrack =
+      event=>{
+
+        const stream =
+          event.streams[0];
+
+
+        setupRemoteAudio(
+          stream
+        );
+
+      };
+
+
+    peerConnection.onconnectionstatechange =
+      ()=>{
+
+        console.log(
+          "WebRTC:",
+          peerConnection
+            .connectionState
+        );
+
+      };
+
+
+    const offer =
+      await peerConnection
+        .createOffer();
+
+
+    await peerConnection
+      .setLocalDescription(
+        offer
+      );
+
+
+    await waitForIce();
+
+
+    await postForm(
+      "saveOffer",
+      {
+
+        adminToken:
+          adminToken,
+
+        deviceId:
+          selectedDeviceId,
+
+        offer:
+          peerConnection
+            .localDescription
+            .sdp
+
+      }
+    );
+
+
+    currentAnswerAt = "";
+
+
+    startAnswerPolling();
+
+
+    alert(
+      "Connection request sent. Waiting for mic device..."
+    );
+
+
+  }catch(error){
+
+    console.error(error);
+
+    alert(
+      "Connection failed: " +
+      error.message
+    );
+
+    disconnectDevice();
+
+  }finally{
+
+    connecting = false;
+
+  }
+
+}
+
+
+/* =================================================
+   WAIT ICE
+================================================= */
+
+function waitForIce(){
+
+  return new Promise(
+    resolve=>{
+
+      if(
+        !peerConnection ||
+        peerConnection
+          .iceGatheringState ===
+        "complete"
+      ){
+
+        resolve();
+
+        return;
+
+      }
+
+
+      const timeout =
+        setTimeout(
+          resolve,
+          6000
+        );
+
+
+      peerConnection
+        .addEventListener(
+          "icegatheringstatechange",
+          function(){
+
+            if(
+              peerConnection
+                .iceGatheringState ===
+              "complete"
+            ){
+
+              clearTimeout(
+                timeout
+              );
+
+              resolve();
+
+            }
+
+          }
+        );
+
+    }
+  );
+
+}
+
+
+/* =================================================
+   ANSWER POLLING
+================================================= */
+
+function startAnswerPolling(){
+
+  stopAnswerPolling();
+
+
+  answerTimer =
+    setInterval(
+      checkAnswer,
+      1200
+    );
+
+
+  checkAnswer();
+
+}
+
+
+function stopAnswerPolling(){
+
+  if(answerTimer){
+
+    clearInterval(
+      answerTimer
+    );
+
+    answerTimer = null;
+
+  }
+
+}
+
+
+async function checkAnswer(){
+
+  if(
+    !peerConnection ||
+    !selectedDeviceId
+  )
+    return;
+
+
+  try{
+
+    const result =
+      await apiGet({
+
+        action:
+          "getSignal",
+
+        role:
+          "controller",
+
+        adminToken:
+          adminToken,
+
+        deviceId:
+          selectedDeviceId
+
+      });
+
+
+    if(
+      !result.success ||
+      !result.answer
+    )
+      return;
+
+
+    if(
+      result.answerAt ===
+      currentAnswerAt
+    )
+      return;
+
+
+    currentAnswerAt =
+      result.answerAt;
+
+
+    await peerConnection
+      .setRemoteDescription({
+
+        type:"answer",
+
+        sdp:
+          result.answer
+
+      });
+
+
+    stopAnswerPolling();
+
+
+  }catch(error){
+
+    console.log(error);
+
+  }
+
+}
+
+
+/* =================================================
+   REMOTE AUDIO
+================================================= */
+
+function setupRemoteAudio(
+  stream
+){
+
+  if(!audioContext){
+
+    audioContext =
+      new (
+        window.AudioContext ||
+        window.webkitAudioContext
+      )();
+
+  }
+
+
+  if(remoteSource){
+
+    try{
+      remoteSource.disconnect();
+    }catch(e){}
+
+  }
+
+
+  remoteSource =
+    audioContext
+      .createMediaStreamSource(
+        stream
+      );
+
+
+  outputGain =
+    audioContext
+      .createGain();
+
+
+  echoDelay =
+    audioContext
+      .createDelay(
+        1.0
+      );
+
+
+  echoGain =
+    audioContext
+      .createGain();
+
+
+  feedbackGain =
+    audioContext
+      .createGain();
+
+
+  analyser =
+    audioContext
+      .createAnalyser();
+
+
+  analyser.fftSize =
+    2048;
+
+
+  /*
+   Audio chain
+  */
+
+  remoteSource.connect(
+    outputGain
+  );
+
+
+  outputGain.connect(
+    echoDelay
+  );
+
+
+  echoDelay.connect(
+    echoGain
+  );
+
+
+  echoGain.connect(
+    feedbackGain
+  );
+
+
+  feedbackGain.connect(
+    echoDelay
+  );
+
+
+  echoGain.connect(
+    audioContext.destination
+  );
+
+
+  /*
+   Dry signal
+  */
+
+  outputGain.connect(
+    audioContext.destination
+  );
+
+
+  remoteSource.connect(
+    analyser
+  );
+
+
+  updateAudioControls();
+
+
+  drawVisualizer();
+
+}
+
+
+/* =================================================
+   AUDIO CONTROLS
+================================================= */
+
+function updateAudioControls(){
+
+  if(!outputGain)
+    return;
+
+
+  const volume =
+    Number(
+      document
+        .getElementById(
+          "outputVolume"
+        )
+        .value
+    ) / 100;
+
+
+  const echo =
+    Number(
+      document
+        .getElementById(
+          "echo"
+        )
+        .value
+    ) / 100;
+
+
+  outputGain.gain.value =
+    volume;
+
+
+  /*
+   Echo 0-100
+  */
+
+  echoDelay.delayTime.value =
+    0.08 +
+    echo * 0.42;
+
+
+  echoGain.gain.value =
+    echo * 0.65;
+
+
+  feedbackGain.gain.value =
+    echo * 0.35;
+
+}
+
+
+/* =================================================
+   PATCH RANGE CHANGE
+================================================= */
+
+document
+  .getElementById(
+    "outputVolume"
+  )
+  .addEventListener(
+    "input",
+    updateAudioControls
+  );
+
+
+document
+  .getElementById(
+    "echo"
+  )
+  .addEventListener(
+    "input",
+    updateAudioControls
+  );
+
+
+/* =================================================
+   DISCONNECT
+================================================= */
+
+function disconnectDevice(){
+
+  stopAnswerPolling();
+
+
+  if(peerConnection){
+
+    try{
+      peerConnection.close();
+    }catch(e){}
+
+    peerConnection =
+      null;
+
+  }
+
+
+  if(remoteSource){
+
+    try{
+      remoteSource.disconnect();
+    }catch(e){}
+
+    remoteSource =
+      null;
+
+  }
+
+
+  analyser =
+    null;
+
+}
+
+
+/* =================================================
+   VISUALIZER
+================================================= */
+
+function drawVisualizer(){
+
+  const canvas =
+    document
+      .getElementById(
+        "visualizer"
+      );
+
+
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  function resize(){
+
+    canvas.width =
+      canvas.clientWidth *
+      devicePixelRatio;
+
+    canvas.height =
+      canvas.clientHeight *
+      devicePixelRatio;
+
+  }
+
+
+  resize();
+
+  window.addEventListener(
+    "resize",
+    resize
+  );
+
+
+  function draw(){
+
+    requestAnimationFrame(
+      draw
+    );
+
+
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+
+    if(!analyser)
+      return;
+
+
+    const buffer =
+      new Uint8Array(
+        analyser.fftSize
+      );
+
+
+    analyser.getByteTimeDomainData(
+      buffer
+    );
+
+
+    const center =
+      canvas.height / 2;
+
+
+    for(
+      let line=0;
+      line<2;
+      line++
+    ){
+
+      ctx.beginPath();
+
+
+      for(
+        let i=0;
+        i<buffer.length;
+        i++
+      ){
+
+        const x =
+          i /
+          (buffer.length-1) *
+          canvas.width;
+
+
+        const wave =
+          (
+            buffer[i]-128
+          ) *
+          (canvas.height/300);
+
+
+        const offset =
+          line === 0
+            ? -12
+            : 12;
+
+
+        const y =
+          center +
+          wave +
+          offset;
+
+
+        if(i===0)
+          ctx.moveTo(
+            x,
+            y
+          );
+        else
+          ctx.lineTo(
+            x,
+            y
+          );
+
+      }
+
+
+      ctx.strokeStyle =
+        line === 0
+          ? "#00e5ff"
+          : "#ff3bd4";
+
+
+      ctx.lineWidth =
+        2;
+
+
+      ctx.stroke();
+
+    }
+
+  }
+
+
+  draw();
+
+}
+
+
+/* =================================================
+   FORMAT DATE
+================================================= */
+
+function formatDate(
+  value
+){
+
+  if(!value)
+    return "-";
+
+
+  const d =
+    new Date(value);
+
+
+  if(
+    isNaN(
+      d.getTime()
+    )
+  )
+    return value;
+
+
+  return d.toLocaleString();
+
+}
+
+
+/* =================================================
+   ESCAPE HTML
+================================================= */
+
+function escapeHtml(
+  text
+){
+
+  return String(
+    text ?? ""
+  )
+  .replace(
+    /&/g,
+    "&amp;"
+  )
+  .replace(
+    /</g,
+    "&lt;"
+  )
+  .replace(
+    />/g,
+    "&gt;"
+  )
+  .replace(
+    /"/g,
+    "&quot;"
+  )
+  .replace(
+    /'/g,
+    "&#039;"
+  );
+
+}
+
+</script>
+
+</body>
+</html>
