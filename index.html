@@ -41,6 +41,7 @@ let adminToken=sessionStorage.getItem(KEY)||"";
 let devices=[];
 let peers={};
 let signalTimer=null;
+let outputAudioCtx=null;
 
 const $=id=>document.getElementById(id);
 
@@ -132,7 +133,7 @@ async function quickMic(id,on){
 function previewOutput(id,v){const d=getD(id);if(d)d.outputVolume=Number(v);$("outv-"+id).textContent=v+"%";applyOutput(id)}
 function previewInput(id,v){const d=getD(id);if(d)d.inputVolume=Number(v);$("inv-"+id).textContent=v+"%";applyRemoteGain(id,v)}
 function previewEcho(id,v){const d=getD(id);if(d)d.echo=Number(v);$("echov-"+id).textContent=v+"%";applyRemoteEcho(id,v)}
-function applyOutput(id,v){const p=peers[id];if(p&&p.audio)p.audio.volume=Number(v)/100}
+function applyOutput(id,v){const p=peers[id];if(p&&p.outputGain)p.outputGain.gain.value=Number(v)/100}
 function applyRemoteGain(id,v){ /* Input gain is applied on the mic device. */ }
 function applyRemoteEcho(id,v){ /* Echo is applied on the mic device. */ }
 
@@ -165,22 +166,26 @@ async function connectDevice(d){
     ]
   });
   p.pc=pc;p.remote=new MediaStream();
-  p.audio=new Audio();
-  p.audio.autoplay=true;
-  p.audio.playsInline=true;
-  p.audio.srcObject=p.remote;
-  p.audio.volume=Number(d.outputVolume)/100;
-  // Direct browser playback of the WebRTC remote stream.
+  if(!outputAudioCtx) outputAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  if(outputAudioCtx.state==='suspended') outputAudioCtx.resume().catch(()=>{});
+  p.outputGain=outputAudioCtx.createGain();
+  p.outputGain.gain.value=(Number(d.outputVolume)||100)/100;
+  p.outputGain.connect(outputAudioCtx.destination);
   pc.ontrack=e=>{
     const stream=e.streams && e.streams[0] ? e.streams[0] : null;
     if(stream){
       p.remote=stream;
-      p.audio.srcObject=stream;
     }else if(e.track){
       p.remote.addTrack(e.track);
-      p.audio.srcObject=p.remote;
     }
-    p.audio.play().catch(()=>{});
+    try{
+      if(p.sourceNode){try{p.sourceNode.disconnect()}catch(_){}}
+      p.sourceNode=outputAudioCtx.createMediaStreamSource(p.remote);
+      p.sourceNode.connect(p.outputGain);
+      if(outputAudioCtx.state==='suspended') outputAudioCtx.resume().catch(()=>{});
+      const el=document.getElementById('rtc-'+d.deviceId);
+      if(el)el.textContent='AUDIO LIVE';
+    }catch(err){console.error('Remote audio error',err)}
   };
   pc.onconnectionstatechange=()=>{
     const el=document.getElementById("rtc-"+d.deviceId);
@@ -189,8 +194,12 @@ async function connectDevice(d){
   };
 
   try{
-    const offer=await pc.createOffer({offerToReceiveAudio:true});
+    // Explicitly request a remote audio track. This is more reliable
+    // than the legacy offerToReceiveAudio option.
+    pc.addTransceiver("audio",{direction:"recvonly"});
+    const offer=await pc.createOffer();
     await pc.setLocalDescription(offer);
+    if(outputAudioCtx && outputAudioCtx.state==='suspended') await outputAudioCtx.resume().catch(()=>{});
     await waitIce(pc);
     const save=await post("saveOffer",{adminToken,deviceId:d.deviceId,offer:JSON.stringify(pc.localDescription)});
     if(!save.success)throw new Error(save.error);
@@ -203,7 +212,7 @@ async function connectDevice(d){
     }
     if(!answer)throw new Error("No WebRTC answer received");
     await pc.setRemoteDescription(JSON.parse(answer));
-    p.audio.volume=Number(d.outputVolume)/100;
+    if(p.outputGain)p.outputGain.gain.value=(Number(d.outputVolume)||100)/100;
   }catch(e){
     const el=document.getElementById("rtc-"+d.deviceId);if(el)el.textContent="ERROR";
     try{pc.close()}catch(_){}
@@ -218,6 +227,17 @@ function waitIce(pc){
   });
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// Chrome can suspend Web Audio until a user interaction.
+// Resume it on the first click/touch anywhere in the controller.
+async function resumeOutputAudio(){
+  try{
+    if(!outputAudioCtx) outputAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(outputAudioCtx.state==='suspended') await outputAudioCtx.resume();
+  }catch(_){}
+}
+window.addEventListener('pointerdown',resumeOutputAudio,{passive:true});
+window.addEventListener('keydown',resumeOutputAudio,{passive:true});
 
 if(adminToken){
   $("lock").classList.add("hidden");$("app").classList.remove("hidden");
