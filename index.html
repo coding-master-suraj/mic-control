@@ -82,7 +82,12 @@ async function loadDevices(){
     devices=r.devices||[];
     $("global").textContent=`${devices.length} device(s) • Live audio connections are browser-to-browser`;
     render();
-    devices.filter(d=>d.online&&d.status!=="BLOCKED").forEach(d=>connectDevice(d));
+    devices.filter(d=>
+      d.online &&
+      d.status!=="BLOCKED" &&
+      d.gmailVerified==="YES" &&
+      (d.status==="LIVE" || d.status==="APPROVED")
+    ).forEach(d=>connectDevice(d));
   }catch(e){$("global").textContent=e.message}
 }
 function render(){
@@ -128,8 +133,8 @@ function previewOutput(id,v){const d=getD(id);if(d)d.outputVolume=Number(v);$("o
 function previewInput(id,v){const d=getD(id);if(d)d.inputVolume=Number(v);$("inv-"+id).textContent=v+"%";applyRemoteGain(id,v)}
 function previewEcho(id,v){const d=getD(id);if(d)d.echo=Number(v);$("echov-"+id).textContent=v+"%";applyRemoteEcho(id,v)}
 function applyOutput(id,v){const p=peers[id];if(p&&p.audio)p.audio.volume=Number(v)/100}
-function applyRemoteGain(id,v){const p=peers[id];if(p&&p.gain)p.gain.gain.value=Number(v)/100}
-function applyRemoteEcho(id,v){const p=peers[id];if(p&&p.echo)p.echo.gain.value=Number(v)/100*.45}
+function applyRemoteGain(id,v){ /* Input gain is applied on the mic device. */ }
+function applyRemoteEcho(id,v){ /* Echo is applied on the mic device. */ }
 
 async function saveControls(id){
   const d=getD(id);if(!d)return;
@@ -160,12 +165,21 @@ async function connectDevice(d){
     ]
   });
   p.pc=pc;p.remote=new MediaStream();
-  p.audio=new Audio();p.audio.autoplay=true;p.audio.srcObject=p.remote;p.audio.volume=Number(d.outputVolume)/100;
-  p.gain=new (window.AudioContext||window.webkitAudioContext)().createGain?.() || null;
-  // Browser Audio element is the primary output. Volume is applied directly.
+  p.audio=new Audio();
+  p.audio.autoplay=true;
+  p.audio.playsInline=true;
+  p.audio.srcObject=p.remote;
+  p.audio.volume=Number(d.outputVolume)/100;
+  // Direct browser playback of the WebRTC remote stream.
   pc.ontrack=e=>{
-    e.streams[0]?.getTracks().forEach(t=>p.remote.addTrack(t));
-    p.audio.srcObject=p.remote;
+    const stream=e.streams && e.streams[0] ? e.streams[0] : null;
+    if(stream){
+      p.remote=stream;
+      p.audio.srcObject=stream;
+    }else if(e.track){
+      p.remote.addTrack(e.track);
+      p.audio.srcObject=p.remote;
+    }
     p.audio.play().catch(()=>{});
   };
   pc.onconnectionstatechange=()=>{
