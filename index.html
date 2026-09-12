@@ -117,7 +117,6 @@ function render(){
         Gmail Verified: <b>${esc(String(d.gmailVerified))}</b><br>
         Mic: <b>${mic}</b> • Last Seen: <b>${d.lastSeen?new Date(d.lastSeen).toLocaleString():"—"}</b><br>
         WebRTC: <b id="rtc-${d.deviceId}">checking…</b>
-      </div>
       <div class="actions">${approve}${block}<button class="secondary" onclick="sendOtp('${d.deviceId}')">SEND OTP</button></div>
       <div class="controls">
         <div class="ctrl"><label>MIC <span>${mic}</span></label><button style="width:100%" onclick="quickMic('${d.deviceId}',${!d.micOn})">${d.micOn?"TURN MIC OFF":"TURN MIC ON"}</button></div>
@@ -175,7 +174,8 @@ async function connectDevice(d){
   const pc=new RTCPeerConnection({
     iceServers:[
       {urls:"stun:stun.l.google.com:19302"},
-      {urls:"stun:stun1.l.google.com:19302"}
+      {urls:"stun:stun1.l.google.com:19302"},
+      {urls:"stun:stun2.l.google.com:19302"}
     ]
   });
   p.pc=pc;
