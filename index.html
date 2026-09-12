@@ -42,6 +42,18 @@ let devices=[];
 let peers={};
 let signalTimer=null;
 let outputAudioCtx=null;
+let audioUnlocked=false;
+
+async function unlockControllerAudio(){
+  try{
+    if(!outputAudioCtx) outputAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(outputAudioCtx.state!=="running") await outputAudioCtx.resume();
+    audioUnlocked=true;
+  }catch(_){}
+}
+
+window.addEventListener("pointerdown",unlockControllerAudio,{passive:true});
+window.addEventListener("keydown",unlockControllerAudio,{passive:true});
 
 const $=id=>document.getElementById(id);
 
@@ -95,7 +107,7 @@ function render(){
   $("devices").innerHTML=devices.map(d=>{
     const s=String(d.status).toUpperCase();
     const cls=s==="LIVE"?"live":s==="BLOCKED"?"blocked":"pending";
-    const approve=s==="BLOCKED"?"":`<button onclick="actionDevice('approve','${d.deviceId}')">APPROVE</button>`;
+    const approve=(s==="BLOCKED" || s==="APPROVED" || s==="LIVE")?"":`<button onclick="actionDevice('approve','${d.deviceId}')">APPROVE</button>`;
     const block=s==="BLOCKED"?`<button onclick="actionDevice('unblock','${d.deviceId}')">UNBLOCK</button>`:`<button class="danger" onclick="actionDevice('block','${d.deviceId}')">BLOCK</button>`;
     const mic=d.micOn?"ON":"OFF";
     return `<div class="card device" data-id="${d.deviceId}">
@@ -157,68 +169,94 @@ function startPolling(){
   signalTimer=setInterval(loadDevices,5000);
 }
 async function connectDevice(d){
-  if(peers[d.deviceId] || d.status==="BLOCKED" || !d.online)return;
+  if(peers[d.deviceId] || d.status==="BLOCKED" || !d.online || d.gmailVerified!=="YES")return;
   const p={};peers[d.deviceId]=p;
+
   const pc=new RTCPeerConnection({
     iceServers:[
       {urls:"stun:stun.l.google.com:19302"},
       {urls:"stun:stun1.l.google.com:19302"}
     ]
   });
-  p.pc=pc;p.remote=new MediaStream();
-  if(!outputAudioCtx) outputAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
-  if(outputAudioCtx.state==='suspended') outputAudioCtx.resume().catch(()=>{});
-  p.outputGain=outputAudioCtx.createGain();
-  p.outputGain.gain.value=(Number(d.outputVolume)||100)/100;
-  p.outputGain.connect(outputAudioCtx.destination);
+  p.pc=pc;
+
+  try{
+    if(!outputAudioCtx) outputAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    p.outputGain=outputAudioCtx.createGain();
+    p.outputGain.gain.value=(Number(d.outputVolume)||100)/100;
+    p.outputGain.connect(outputAudioCtx.destination);
+  }catch(e){
+    console.error("AudioContext error",e);
+  }
+
   pc.ontrack=e=>{
-    const stream=e.streams && e.streams[0] ? e.streams[0] : null;
-    if(stream){
-      p.remote=stream;
-    }else if(e.track){
-      p.remote.addTrack(e.track);
-    }
     try{
-      if(p.sourceNode){try{p.sourceNode.disconnect()}catch(_){}}
-      p.sourceNode=outputAudioCtx.createMediaStreamSource(p.remote);
+      if(!outputAudioCtx) outputAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      const stream=(e.streams&&e.streams[0]) ? e.streams[0] : new MediaStream([e.track]);
+      if(p.sourceNode){try{p.sourceNode.disconnect()}catch(_){} }
+      p.remoteStream=stream;
+      p.sourceNode=outputAudioCtx.createMediaStreamSource(stream);
       p.sourceNode.connect(p.outputGain);
-      if(outputAudioCtx.state==='suspended') outputAudioCtx.resume().catch(()=>{});
-      const el=document.getElementById('rtc-'+d.deviceId);
-      if(el)el.textContent='AUDIO LIVE';
-    }catch(err){console.error('Remote audio error',err)}
+      unlockControllerAudio();
+      const el=document.getElementById("rtc-"+d.deviceId);
+      if(el)el.textContent="AUDIO LIVE";
+    }catch(err){
+      console.error("Remote audio error",err);
+      const el=document.getElementById("rtc-"+d.deviceId);
+      if(el)el.textContent="AUDIO ERROR";
+    }
   };
+
   pc.onconnectionstatechange=()=>{
     const el=document.getElementById("rtc-"+d.deviceId);
     if(el)el.textContent=pc.connectionState.toUpperCase();
-    if(["failed","closed"].includes(pc.connectionState)){delete peers[d.deviceId]}
+    if(pc.connectionState==="connected") unlockControllerAudio();
+    if(["failed","closed"].includes(pc.connectionState)){
+      try{if(p.sourceNode)p.sourceNode.disconnect()}catch(_){}
+      try{pc.close()}catch(_){}
+      delete peers[d.deviceId];
+    }
+  };
+
+  pc.oniceconnectionstatechange=()=>{
+    const el=document.getElementById("rtc-"+d.deviceId);
+    if(el && pc.connectionState!=="connected")el.textContent=pc.iceConnectionState.toUpperCase();
   };
 
   try{
-    // Explicitly request a remote audio track. This is more reliable
-    // than the legacy offerToReceiveAudio option.
+    // Controller receives the microphone audio track.
     pc.addTransceiver("audio",{direction:"recvonly"});
     const offer=await pc.createOffer();
     await pc.setLocalDescription(offer);
-    if(outputAudioCtx && outputAudioCtx.state==='suspended') await outputAudioCtx.resume().catch(()=>{});
     await waitIce(pc);
-    const save=await post("saveOffer",{adminToken,deviceId:d.deviceId,offer:JSON.stringify(pc.localDescription)});
+
+    const save=await post("saveOffer",{
+      adminToken,
+      deviceId:d.deviceId,
+      offer:JSON.stringify(pc.localDescription)
+    });
     if(!save.success)throw new Error(save.error);
 
     let answer="",started=Date.now();
     while(Date.now()-started<30000){
-      await sleep(1200);
+      await sleep(1000);
       const r=await api("getSignal",{role:"controller",adminToken,deviceId:d.deviceId});
       if(r.success&&r.answer){answer=r.answer;break}
     }
     if(!answer)throw new Error("No WebRTC answer received");
+
     await pc.setRemoteDescription(JSON.parse(answer));
+    await unlockControllerAudio();
     if(p.outputGain)p.outputGain.gain.value=(Number(d.outputVolume)||100)/100;
   }catch(e){
-    const el=document.getElementById("rtc-"+d.deviceId);if(el)el.textContent="ERROR";
+    console.error("WebRTC connection error",e);
+    const el=document.getElementById("rtc-"+d.deviceId);
+    if(el)el.textContent="ERROR";
     try{pc.close()}catch(_){}
     delete peers[d.deviceId];
   }
 }
+
 function waitIce(pc){
   return new Promise(resolve=>{
     if(pc.iceGatheringState==="complete")return resolve();
